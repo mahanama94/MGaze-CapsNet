@@ -6,7 +6,7 @@ from capsnet.capsulelayers import CapsuleLayer, PrimaryCap, Length, Mask
 K.set_image_data_format('channels_last')
 
 
-def GazeNet(input_shape, n_class, routings):
+def GazeNet(input_shape, n_class=9, routings=3):
     """
     A Capsule Network on MNIST.
     :param input_shape: data shape, 3d, [width, height, channels]

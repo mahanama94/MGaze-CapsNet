@@ -23,7 +23,7 @@ from keras.utils import to_categorical
 import matplotlib.pyplot as plt
 from utils import combine_images
 from PIL import Image
-from capsulelayers import CapsuleLayer, PrimaryCap, Length, Mask
+from capsnet.capsulelayers import CapsuleLayer, PrimaryCap, Length, Mask
 
 K.set_image_data_format('channels_last')
 
