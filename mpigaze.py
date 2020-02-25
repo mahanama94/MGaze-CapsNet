@@ -1,22 +1,35 @@
-import matplotlib.pyplot as plt
-import pandas as pd
+from sklearn.model_selection import train_test_split
 import numpy as np
 import scipy.io
 import math
-from sklearn.model_selection import train_test_split
+import os
 
 def _extract_file_data(file_name):
     return scipy.io.loadmat(file_name, mat_dtype=True, squeeze_me=True)
 
 
 class MPIGaze:
+
+    data_dir = "C:/Users/Nirds2/Documents/Bhanuka/Datasets/MPIIGaze/Data/Normalized/"
+
     file_names = None
 
     df = None
 
+    def __init__(self, data_dir=None):
+        if not data_dir is None:
+            self.data_dir = data_dir
+
     def _file_names(self):
-        if self.file_names is None:
-            self.file_names = ["day01.mat"]
+
+        self.file_names = []
+        directories = os.listdir(self.data_dir)
+        for directory in directories:
+            files = os.listdir(self.data_dir + directory)
+            for file in files:
+                self.file_names.append(self.data_dir + directory + "/" + file)        #
+        # if self.file_names is None:
+        #     self.file_names = ["day01.mat"]
         return self.file_names
 
     def load_data(self):
@@ -26,41 +39,61 @@ class MPIGaze:
 
         return self.df
 
+    def load_np(self, file_name='data.npy'):
+        if self.df is None:
+            self.df = np.load(file_name, allow_pickle=True)
+        return self.df
+
+    def load_train_test(self, dir='H', test_size=0.25):
+        if dir == 'H':
+            return train_test_split(self.df[:, 0], self.df[:, 1], test_size=test_size)
+        return train_test_split(self.df[:, 0], self.df[:, 2], test_size=test_size)
+
     def read_data(self):
 
         for file_name in self._file_names():
+            print(file_name)
             data = _extract_file_data(file_name)
 
             right_gaze = data['data']['right'].item()['gaze'].item()
+            right_images = data['data']['right'].item()['image'].item()
+
+            if right_gaze.ndim == 1:
+                right_gaze = right_gaze.reshape((1, 3))
+                right_images = right_images.reshape((1, 36, 60))
 
             for i in range(0, len(right_gaze)):
 
                 x = right_gaze[i][0]
                 y = right_gaze[i][1]
                 z = right_gaze[i][2]
-                image = right_gaze[i]
+                right_image = right_images[i]
 
                 theta = math.asin(-y)
                 phi = math.atan2(-x, -z)
 
                 if self.df is None:
-                    self.df = np.array([image, theta, phi]).reshape((1, 3))
+                    self.df = np.array([right_image, theta, phi]).reshape((1, 3))
                 else:
-                    self.df = np.append(self.df, [[image, theta, phi]], axis=0)
+                    self.df = np.append(self.df, [[right_image, theta, phi]], axis=0)
 
             left_gaze = data['data']['left'].item()['gaze'].item()
+            left_images = data['data']['left'].item()['image'].item()
+            if left_gaze.ndim == 1:
+                left_gaze = left_gaze.reshape((1, 3))
+                left_images = left_images.reshape((1, 36, 60))
 
             for i in range(0, len(left_gaze)):
 
                 x = left_gaze[i][0]
                 y = left_gaze[i][1]
                 z = left_gaze[i][2]
-                image = left_gaze[i]
+                left_image = left_images[i]
 
                 theta = math.asin(-y)
                 phi = math.atan2(-x, -z)
 
                 if self.df is None:
-                    self.df = np.array([image, theta, phi]).reshape((1, 3))
+                    self.df = np.array([left_image, theta, phi]).reshape((1, 3))
                 else:
-                    self.df = np.append(self.df, [[image, theta, phi]], axis=0)
+                    self.df = np.append(self.df, [[left_image, theta, phi]], axis=0)
