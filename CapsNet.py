@@ -9,12 +9,11 @@ np.random.seed(42)
 tf.random.set_seed(42)
 
 
-def squash(_data, axis=-1):
-    squared_norm = k.sum(k.square(_data), axis=axis, keepdims=True)
-    squash_factor = squared_norm / (1. + squared_norm)
-    unit_vector = _data / k.sqrt(squared_norm + k.epsilon())
-    return squash_factor * unit_vector
-
+# def squash(_data, axis=-1):
+#     squared_norm = k.sum(k.square(_data), axis=axis, keepdims=True)
+#     squash_factor = squared_norm / (1. + squared_norm)
+#     unit_vector = _data / k.sqrt(squared_norm + k.epsilon())
+#     return squash_factor * unit_vector
 
 def safe_norm(_data, axis=-1, keepdims=False):
     squared_norm = k.sum(k.square(_data), axis=axis, keepdims=keepdims)
@@ -32,34 +31,41 @@ def class_probs(_output):
     '''shape: (batch_size, )'''
     return p
 
+def squash(_data, axis=-1):
+    squared_norm = k.sum(k.square(_data), axis=axis, keepdims=True)
+    squash_factor = squared_norm / (1. + squared_norm)
+    unit_vector = _data / k.sqrt(squared_norm + k.epsilon())
+    return squash_factor * unit_vector
 
-def margin_loss(_y_true, _y_pred, m_plus=0.9, m_minus=0.1, lambda_=0.5, caps2_n_caps=10):
-    print("Y True: " + _y_true.shape)
-    print("Y Pred: " + _y_pred.shape)
-    T = tf.one_hot(_y_true, depth=caps2_n_caps, name="T")
-    caps2_output_norm = safe_norm(_y_pred, axis=-2, keepdims=True)
-    # print(caps2_output_norm.shape)
 
-    present_error_raw = tf.square(tf.maximum(0., m_plus - caps2_output_norm))
-    present_error = tf.reshape(present_error_raw, shape=(-1, 10))
+def caps_layer(_data, axis=-1):
+    norm = tf.reshape(safe_norm(_data, axis=-2, keepdims=True), shape=(-1, 10))
+    return norm
 
-    absent_error_raw = tf.square(tf.maximum(0., caps2_output_norm - m_minus))
-    absent_error = tf.reshape(absent_error_raw, shape=(-1, 10))
+def marginal_loss(y_true, y_pred):
+    y_pred_norm = tf.reshape(safe_norm(y_pred, axis=-2, keepdims=True), shape=(-1, 10))
 
+    present_error = tf.reshape(tf.square(tf.maximum(0., 0.9 - y_pred_norm)), shape=(-1, 10))
+    absent_error = tf.reshape(tf.square(tf.maximum(0., y_pred_norm - 0.1)), shape=(-1, 10))
+
+    loss = tf.add(y_true * present_error, 0.5 * (1.0 - y_true) * absent_error)
+
+    return tf.reduce_mean(tf.reduce_sum(loss, axis=1))
+
+
+def reconstruction_loss(y_true, y_pred):
     return 0.0
 
 
-def reconstruction_loss(_y_true, _y_pred):
+def capsnet_loss(y_true, y_pred):
     return 0.0
 
-
-def capsnet_loss(_y_true, _y_pred):
-    return 0.0
 
 
 class DigitCaps(layers.Layer):
 
-    def __init__(self, num_caps, dim_caps, routing_iter, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
+    def __init__(self, num_caps, dim_caps, routing_iter, trainable=True, name=None, dtype=None, dynamic=False,
+                 **kwargs):
         super().__init__(trainable, name, dtype, dynamic, **kwargs)
         self.num_caps = num_caps
         self.dim_caps = dim_caps
@@ -71,7 +77,8 @@ class DigitCaps(layers.Layer):
     def build(self, input_shape):
         self.p_num_caps = input_shape[-2]
         self.p_dim_caps = input_shape[-1]
-        self.w = k.random_normal(shape=(1, self.p_num_caps, self.num_caps, self.dim_caps, self.p_dim_caps), mean=0.0, stddev=0.1, dtype=tf.float32)
+        self.w = k.random_normal(shape=(1, self.p_num_caps, self.num_caps, self.dim_caps, self.p_dim_caps), mean=0.0,
+                                 stddev=0.1, dtype=tf.float32)
         self.built = True
 
     @staticmethod
@@ -148,6 +155,24 @@ class DigitCaps(layers.Layer):
         return dynamic_routing(routing_weights)
 
 
+#
+# def margin_loss(_y_true, _y_pred, m_plus=0.9, m_minus=0.1, lambda_=0.5, caps2_n_caps=10):
+#     print("Y True: " + _y_true.shape)
+#     print("Y Pred: " + _y_pred.shape)
+#     T = tf.one_hot(_y_true, depth=caps2_n_caps, name="T")
+#     caps2_output_norm = safe_norm(_y_pred, axis=-2, keepdims=True)
+#     # print(caps2_output_norm.shape)
+#
+#     present_error_raw = tf.square(tf.maximum(0., m_plus - caps2_output_norm))
+#     present_error = tf.reshape(present_error_raw, shape=(-1, 10))
+#
+#     absent_error_raw = tf.square(tf.maximum(0., caps2_output_norm - m_minus))
+#     absent_error = tf.reshape(absent_error_raw, shape=(-1, 10))
+#
+#     return 0.0
+#
+#
+
 if __name__ == '__main__':
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
@@ -197,10 +222,11 @@ if __name__ == '__main__':
     # digit caps (routing based on agreement -> weighted prediction)
     l6 = DigitCaps(**digit_caps_spec)(l5)
 
-    # class label
-    l7 = layers.Lambda(class_probs)(l6)
+    l7 = layers.Lambda(caps_layer)(l6)
 
-    model = models.Model(l1, l6)
-    model.compile(optimizer='adam', loss=margin_loss, metrics=['accuracy'])
-    model.fit(x_train, y_train, batch_size=64, epochs=100)
+    # class label
+    model = models.Model(l1, l7)
+
+    model.compile(optimizer='adam', loss=marginal_loss, metrics=['accuracy'])
+    model.fit(x_train, y_train, batch_size=64, epochs=2, validation_split=0.1)
     model.evaluate(x_test, y_test)
