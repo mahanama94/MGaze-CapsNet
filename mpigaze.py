@@ -4,12 +4,12 @@ import scipy.io
 import math
 import os
 
+
 def _extract_file_data(file_name):
     return scipy.io.loadmat(file_name, mat_dtype=True, squeeze_me=True)
 
 
 class MPIGaze:
-
     data_dir = "C:/Users/Nirds2/Documents/Bhanuka/Datasets/MPIIGaze/Data/Normalized/"
 
     file_names = None
@@ -27,10 +27,15 @@ class MPIGaze:
         for directory in directories:
             files = os.listdir(self.data_dir + directory)
             for file in files:
-                self.file_names.append(self.data_dir + directory + "/" + file)        #
+                self.file_names.append(self.data_dir + directory + "/" + file)  #
         # if self.file_names is None:
         #     self.file_names = ["day01.mat"]
         return self.file_names
+
+    def _format(self):
+        bins = np.array([-10.0, 10.0])
+        self.df[:, 1] = np.digitize(self.df[:, 1] * 180 / math.pi, bins)
+        self.df[:, 2] = np.digitize(self.df[:, 2] * 180 / math.pi, bins)
 
     def load_data(self):
 
@@ -42,6 +47,7 @@ class MPIGaze:
     def load_np(self, file_name='data.npy'):
         if self.df is None:
             self.df = np.load(file_name, allow_pickle=True)
+            self._format()
         return self.df
 
     def load_train_test(self, dir='H', test_size=0.25):
