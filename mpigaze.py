@@ -50,10 +50,16 @@ class MPIGaze:
             self._format()
         return self.df
 
-    def load_train_test(self, dir='H', test_size=0.25):
+    def load_train_test(self, dir=None, test_size=0.25):
+        # if dir == 'H':
+        #     return train_test_split(self.df[:, 0], self.df[:, 1], test_size=test_size)
+        # return train_test_split(self.df[:, 0], self.df[:, 2], test_size=test_size)
         if dir == 'H':
-            return train_test_split(self.df[:, 0], self.df[:, 1], test_size=test_size)
-        return train_test_split(self.df[:, 0], self.df[:, 2], test_size=test_size)
+            return train_test_split(np.array(list(self.df[:, 0])), self.df[:, 1], test_size=test_size)
+        if dir == 'V':
+            return train_test_split(np.array(list(self.df[:, 0])), self.df[:, 2], test_size=test_size)
+        else:
+            return train_test_split(np.array(list(self.df[:, 0])), self.df[:, 2] * 3 + self.df[:, 1], test_size=test_size)
 
     def read_data(self):
 
