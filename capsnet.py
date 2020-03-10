@@ -281,12 +281,12 @@ if __name__ == '__main__':
     r0 = layers.Flatten()(l8)
     r1 = layers.Dense(16)(r0)
     r2 = layers.Dense(16)(r1)
-    r3 = layers.Dense(2, activation='linear')(r2)
+    r3 = layers.Dense(2, activation='linear', name='gaze')(r2)
 
 
     # define the model
     model = models.Model(inputs=l1, outputs=[l7, d4, r3], name='capsule_network')
-    model.compile(optimizer='adam', loss=[margin_loss, reconstruction_loss, tf.losses.mean_squared_error], loss_weights=[1e0, 5e-3, 0.5], metrics={'margin': accuracy})
+    model.compile(optimizer='adam', loss=[margin_loss, reconstruction_loss, tf.losses.mean_squared_error], loss_weights=[1e0, 5e-3, 5e-3], metrics={'margin': accuracy, 'gaze': 'mae'})
 
     # checkpoint function to save best weights
     checkpoint = callbacks.ModelCheckpoint("best_weights.hdf5", save_best_only=True)
@@ -294,13 +294,14 @@ if __name__ == '__main__':
     if os.path.exists('best_weights.hdf5'):
         # load existing weights
         model.load_weights('best_weights.hdf5')
+        model.fit(x_train, [_y_train, x_train, y_train[:, 0:2]], batch_size=50, epochs=50, validation_split=0.1, callbacks=[checkpoint])
     else:
         # training
         model.fit(x_train, [_y_train, x_train, y_train[:, 0:2]], batch_size=50, epochs=50, validation_split=0.1, callbacks=[checkpoint])
         # load best weights
         model.load_weights('best_weights.hdf5')
         # evaluation
-        model.evaluate(x_test, [_y_test, x_test, y_test[:, 0:2]])
+    model.evaluate(x_test, [_y_test, x_test, y_test[:, 0:2]])
 
 
     def print_results():

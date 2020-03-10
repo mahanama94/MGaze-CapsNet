@@ -66,7 +66,7 @@ class MPIGaze:
         #     return train_test_split(np.array(list(self.df[:, 0])), self.df[:, 2], test_size=test_size)
         # else:
         #     return train_test_split(np.array(list(self.df[:, 0])), self.df[:, 1] * 3 + self.df[:, 2], test_size=test_size)
-        return train_test_split(np.array(list(self.df[:, 0])), self.df[:, 1:].astype('float32'), test_size=test_size)
+        return train_test_split(np.array(list(self.df[:, 0])), self.df[:, 1:].astype('float32'), test_size=test_size, random_state=42)
 
     def read_data(self):
 
