@@ -34,8 +34,14 @@ class MPIGaze:
 
     def _format(self):
         bins = np.array([-10.0, 10.0])
-        self.df[:, 1] = np.digitize(self.df[:, 1] * 180 / math.pi, bins)
-        self.df[:, 2] = np.digitize(self.df[:, 2] * 180 / math.pi, bins)
+        self.df[:, 1] = self.df[:, 1] * 180 / math.pi
+        self.df[:, 2] = self.df[:, 2] * 180 / math.pi
+        self.df = np.hstack((self.df, np.digitize(self.df[:, 1], bins).reshape(-1, 1)))
+        self.df = np.hstack((self.df, np.digitize(self.df[:, 2], bins).reshape(-1, 1)))
+        self.df = np.hstack((self.df, (self.df[:, 3] * 3 + self.df[:, 4]).reshape(-1, 1)))
+        # self.df = np.append(self.df, np.digitize(self.df[:, 1], bins), axis=0)
+        # self.df = np.append(self.df, np.digitize(self.df[:, 2], bins), axis=0)
+
 
     def load_data(self):
 
@@ -54,12 +60,13 @@ class MPIGaze:
         # if dir == 'H':
         #     return train_test_split(self.df[:, 0], self.df[:, 1], test_size=test_size)
         # return train_test_split(self.df[:, 0], self.df[:, 2], test_size=test_size)
-        if dir == 'H':
-            return train_test_split(np.array(list(self.df[:, 0])), self.df[:, 1], test_size=test_size)
-        if dir == 'V':
-            return train_test_split(np.array(list(self.df[:, 0])), self.df[:, 2], test_size=test_size)
-        else:
-            return train_test_split(np.array(list(self.df[:, 0])), self.df[:, 2] * 3 + self.df[:, 1], test_size=test_size)
+        # if dir == 'H':
+        #     return train_test_split(np.array(list(self.df[:, 0])), self.df[:, 1], test_size=test_size)
+        # if dir == 'V':
+        #     return train_test_split(np.array(list(self.df[:, 0])), self.df[:, 2], test_size=test_size)
+        # else:
+        #     return train_test_split(np.array(list(self.df[:, 0])), self.df[:, 1] * 3 + self.df[:, 2], test_size=test_size)
+        return train_test_split(np.array(list(self.df[:, 0])), self.df[:, 1:].astype('float32'), test_size=test_size)
 
     def read_data(self):
 
