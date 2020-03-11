@@ -286,7 +286,7 @@ if __name__ == '__main__':
 
     # define the model
     model = models.Model(inputs=l1, outputs=[l7, d4, r3], name='capsule_network')
-    model.compile(optimizer='adam', loss=[margin_loss, reconstruction_loss, tf.losses.mean_squared_error], loss_weights=[1e0, 5e-3, 5e-3], metrics={'margin': accuracy, 'gaze': 'mae'})
+    model.compile(optimizer='adam', loss=[margin_loss, reconstruction_loss, tf.losses.mean_squared_error], loss_weights=[1e0, 0, 5e-3], metrics={'margin': accuracy, 'gaze': 'mae'})
 
     # checkpoint function to save best weights
     checkpoint = callbacks.ModelCheckpoint("best_weights.hdf5", save_best_only=True)
