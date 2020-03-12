@@ -269,10 +269,10 @@ if __name__ == '__main__':
     l7 = layers.Lambda(safe_l2_norm, name='margin')(l6)
 
     # masking layer
-    l8 = layers.Lambda(mask)(l6)
+    l8 = layers.Lambda(mask, name='mask')(l6)
 
     # decoder
-    d0 = layers.Flatten()(l8)
+    d0 = layers.Flatten(name='decoder_flatten')(l8)
     d1 = layers.Dense(512, activation='relu')(d0)
     d2 = layers.Dense(1024, activation='relu')(d1)
     d3 = layers.Dense(np.prod(_input_shape), activation='sigmoid')(d2)
@@ -294,20 +294,58 @@ if __name__ == '__main__':
     if os.path.exists('best_weights.hdf5'):
         # load existing weights
         model.load_weights('best_weights.hdf5')
-        model.fit(x_train, [_y_train, x_train, y_train[:, 0:2]], batch_size=50, epochs=50, validation_split=0.1, callbacks=[checkpoint])
+        # model.fit(x_train, [_y_train, x_train, y_train[:, 0:2]], batch_size=50, epochs=50, validation_split=0.1, callbacks=[checkpoint])
     else:
         # training
         model.fit(x_train, [_y_train, x_train, y_train[:, 0:2]], batch_size=50, epochs=50, validation_split=0.1, callbacks=[checkpoint])
         # load best weights
         model.load_weights('best_weights.hdf5')
         # evaluation
-    model.evaluate(x_test, [_y_test, x_test, y_test[:, 0:2]])
+
+    # model.evaluate(x_test, [_y_test, x_test, y_test[:, 0:2]])
+
+    # Altering features of gaze caps layer
+
+    gaze_caps = models.Model(inputs=model.inputs, outputs=model.get_layer('mask').output, name='gaze_caps')
+
+    gazecaps_input = tf.keras.Input(shape=(6, 16))
+    decoder = models.Sequential([
+        gazecaps_input,
+        model.get_layer('decoder_flatten'),
+        model.get_layer('dense'),
+        model.get_layer('dense_1'),
+        model.get_layer('dense_2'),
+        model.get_layer('reconstruction')
+    ])
+
+    def tweak_caps():
+        indices = np.random.randint(0, len(x_test), 1)
+        _x, _y = x_test[indices], y_test[indices]
+        y_caps = gaze_caps.predict(_x)
+        ssq = np.sum(y_caps[0]**2, axis=1)
+        caps_index = np.argmax(ssq)
+
+        fig, axes = plt.subplots(ncols=11, nrows=16)
+
+        for i in range(16):
+
+            for j in range(-25, 30, 5):
+                copy = np.copy(y_caps[0])
+                copy[caps_index][i] = j /100.0
+                image = decoder.predict(np.array([copy]))
+                axes[i, int((j+25)/5)].imshow(image[0].reshape((36, 60)), cmap='gray', vmin=0.0, vmax=1.0)
+                axes[i, int((j + 25) / 5)].axis('off')
+
+        # plt.show()
+        plt.savefig("caps-changes-1.pdf")
+        plt.show()
+    tweak_caps()
 
 
     def print_results():
         indices = np.random.randint(0, len(x_test), 10)
         _n, _x, _y = len(indices), x_test[indices], y_test[indices]
-        [_y_p, _x_p] = model.predict(_x)
+        [_y_p, _x_p, other] = model.predict(_x)
         fig, axs = plt.subplots(ncols=5, nrows=4)
         for z in range(_n):
             i = (z // 5) * 2
@@ -317,6 +355,7 @@ if __name__ == '__main__':
             axs[i + 1, j].imshow(np.squeeze(_x[z]), cmap='gray', vmin=0.0, vmax=1.0)
             axs[i + 1, j].axis('off')
         fig.show()
+        plt.show()
 
 
-    print_results()
+    # print_results()
