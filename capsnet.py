@@ -307,7 +307,7 @@ if __name__ == '__main__':
     def print_results():
         indices = np.random.randint(0, len(x_test), 10)
         _n, _x, _y = len(indices), x_test[indices], y_test[indices]
-        [_y_p, _x_p] = model.predict(_x)
+        [_y_p, _x_p, other] = model.predict(_x)
         fig, axs = plt.subplots(ncols=5, nrows=4)
         for z in range(_n):
             i = (z // 5) * 2
@@ -317,6 +317,7 @@ if __name__ == '__main__':
             axs[i + 1, j].imshow(np.squeeze(_x[z]), cmap='gray', vmin=0.0, vmax=1.0)
             axs[i + 1, j].axis('off')
         fig.show()
+        plt.show()
 
 
     print_results()
