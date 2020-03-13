@@ -318,6 +318,58 @@ if __name__ == '__main__':
         model.get_layer('reconstruction')
     ])
 
+    def test_columbia():
+        from columbia_gaze import ColumbiaGaze, file_names
+
+        gazecaps_results = list()
+        columbia_results = list()
+
+        for file_name in file_names:
+
+            c = ColumbiaGaze()
+            c.load_np()
+
+            x_train, x_test, y_train, y_test = c.load_train_test(test_size=0.25)
+
+            x_train = x_train/255.0
+            x_test = x_test/ 255.0
+
+            gazecaps_input = tf.keras.Input(shape=(6, 16))
+
+            estimator = models.Sequential([
+                gazecaps_input,
+                layers.Flatten(),
+                layers.Dense(16),
+                layers.Dense(16),
+                layers.Dense(2, activation='linear', name='estimation')
+            ])
+            x_train = np.expand_dims(x_train, -1)
+            x_test = np.expand_dims(x_test, -1)
+
+            y_caps_train = gaze_caps.predict(x_train)
+            y_caps_test = gaze_caps.predict(x_test)
+
+            # plt.hist(y_test[:, 4])
+            # plt.show()
+            #
+            # plt.hist(y_train[:, 4])
+            # plt.show()
+
+            estimator.compile(optimizer='adam', loss=tf.losses.mean_squared_error, metrics={'estimation': 'mae'})
+            estimator.fit(y_caps_train, y_train[:, 0:2], epochs=50, batch_size=10)
+            columbia_result = estimator.evaluate(y_caps_test, y_test[:, 0:2])
+            columbia_results.append(columbia_result[1])
+
+            gazecaps_result = model.evaluate(x_test, [y_test[:, 4], x_test, y_test[:, 0:2]])
+            gazecaps_results.append(gazecaps_result[-1])
+
+        print(len(columbia_results))
+        print("columbia_results : " + str(sum(columbia_results)/ len(columbia_results)))
+        print("gazecaps_results : " + str(sum(gazecaps_results) / len(gazecaps_results)))
+
+    test_columbia()
+
+
     def tweak_caps():
         indices = np.random.randint(0, len(x_test), 1)
         _x, _y = x_test[indices], y_test[indices]
@@ -339,7 +391,7 @@ if __name__ == '__main__':
         # plt.show()
         plt.savefig("caps-changes-1.pdf")
         plt.show()
-    tweak_caps()
+    # tweak_caps()
 
 
     def print_results():
