@@ -365,9 +365,10 @@ if __name__ == '__main__':
 
         print(len(columbia_results))
         print("columbia_results : " + str(sum(columbia_results)/ len(columbia_results)))
+        print(columbia_results)
         print("gazecaps_results : " + str(sum(gazecaps_results) / len(gazecaps_results)))
-
-    test_columbia()
+        print(gazecaps_results)
+    # test_columbia()
 
 
     def tweak_caps():
@@ -377,19 +378,47 @@ if __name__ == '__main__':
         ssq = np.sum(y_caps[0]**2, axis=1)
         caps_index = np.argmax(ssq)
 
-        fig, axes = plt.subplots(ncols=11, nrows=16)
+        caps = [0, 2, 4, 5, 7, 8, 10, 15]
+        captions = [
+            'Left or right \n eye',
+            'Front or side',
+            'Down or up',
+            'Facial rotation',
+            'Front or side',
+            'Opening',
+            'Front or side',
+            'Opening'
+        ]
+        caps_vals = [-0.25, -0.125, 0, 0.125, 0.25]
 
-        for i in range(16):
+        fig, axes = plt.subplots(ncols=6, nrows=len(caps) + 1, figsize=(10, 10))
 
-            for j in range(-25, 30, 5):
+        axes[0, 0].axis('off')
+
+        for i in range(5):
+            axes[0, i + 1].text(0.5, 0.0 , str(caps_vals[i]), fontsize=7, horizontalalignment='center', verticalalignment='bottom')
+            axes[0, i + 1].axis('off')
+
+        for i in caps:
+
+            axes[caps.index(i) + 1, 0].text(0.5, 0.5, captions[caps.index(i)], fontsize=8, horizontalalignment='left', verticalalignment='center', multialignment='left')
+            axes[caps.index(i) + 1, 0].axis('off')
+
+            for j in caps_vals:
                 copy = np.copy(y_caps[0])
-                copy[caps_index][i] = j /100.0
+                copy[caps_index][i] = copy[caps_index][i] + j
                 image = decoder.predict(np.array([copy]))
-                axes[i, int((j+25)/5)].imshow(image[0].reshape((36, 60)), cmap='gray', vmin=0.0, vmax=1.0)
-                axes[i, int((j + 25) / 5)].axis('off')
+                axes[caps.index(i) + 1, caps_vals.index(j) + 1].imshow(image[0].reshape((36, 60)), cmap='gray', vmin=0.0,vmax=1.0)
+                axes[caps.index(i) + 1, caps_vals.index(j) + 1].axis('off')
+
+
+                # axes[caps.index(i), int((j+25)/5)].imshow(image[0].reshape((36, 60)), cmap='gray', vmin=0.0, vmax=1.0)
+                # axes[caps.index(i), int((j + 25) / 5)].axis('off')
 
         # plt.show()
-        plt.savefig("caps-changes-1.pdf")
+        # plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+
+        plt.savefig("caps-changes-1-updated.pdf")
         plt.show()
     # tweak_caps()
 
