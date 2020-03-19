@@ -14,9 +14,9 @@ class ColumbiaGaze:
         self.df = np.hstack((self.df, np.digitize(self.df[:, 2], bins).reshape(-1, 1)))
         self.df = np.hstack((self.df, (self.df[:, 3] * 3 + self.df[:, 4]).reshape(-1, 1)))
 
-    def load_np(self):
+    def load_np(self, name):
         if self.df == None:
-            self.df = np.load('columbia-gaze.npy', allow_pickle=True)
+            self.df = np.load(name, allow_pickle=True)
             self._format()
         return self.df
 
